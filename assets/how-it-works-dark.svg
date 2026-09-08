@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500" role="img" aria-labelledby="title desc">
+  <title id="title">How Agent Helper works</title>
+  <desc id="desc">A project folder enters Agent Helper, which maps it to a persistent tmux session and shares one Amphetamine wake session. Returning to the folder reconnects to the same shell and process.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#E9E6DC"/></marker>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" stroke="#24251F" stroke-width="1"/></pattern>
+  </defs>
+  <rect width="1200" height="500" fill="#12130F"/>
+  <rect width="1200" height="500" fill="url(#grid)"/>
+  <rect x="1" y="1" width="1198" height="498" fill="none" stroke="#E9E6DC" stroke-width="2"/>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
+    <text x="36" y="45" fill="#FF6845" font-size="12" font-weight="700" letter-spacing="2.4">SYSTEM MAP / LOCAL RELAY</text>
+    <text x="1164" y="45" text-anchor="end" fill="#88877F" font-size="11" letter-spacing="1.7">ONE FOLDER · ONE SHELL</text>
+    <path d="M0 68H1200" stroke="#E9E6DC" stroke-width="2"/>
+
+    <path d="M228 234H346" stroke="#E9E6DC" stroke-width="3" marker-end="url(#arrow)"/>
+    <path d="M558 234H676" stroke="#E9E6DC" stroke-width="3" marker-end="url(#arrow)"/>
+    <path d="M888 234H1006" stroke="#E9E6DC" stroke-width="3" marker-end="url(#arrow)"/>
+    <path d="M782 304V350" stroke="#799BFF" stroke-width="3"/>
+    <path d="M782 422H182V304" fill="none" stroke="#799BFF" stroke-width="3" stroke-dasharray="8 8" marker-end="url(#arrow)"/>
+
+    <g transform="translate(42 150)">
+      <rect width="186" height="154" fill="#171813" stroke="#E9E6DC" stroke-width="2"/>
+      <path d="M34 53V35h42l12 12h64v58H34Z" fill="none" stroke="#FF6845" stroke-width="4"/>
+      <text x="22" y="126" fill="#88877F" font-size="10" letter-spacing="1.5">INPUT / PATH</text>
+      <text x="22" y="146" fill="#E9E6DC" font-size="15">project folder</text>
+    </g>
+
+    <g transform="translate(346 150)">
+      <rect width="212" height="154" fill="#FF6845"/>
+      <text x="22" y="31" fill="#12130F" font-size="10" font-weight="700" letter-spacing="1.5">01 / RESOLVE</text>
+      <text x="22" y="81" fill="#12130F" font-family="Georgia, 'Times New Roman', serif" font-size="35">agent</text>
+      <text x="22" y="112" fill="#12130F" font-size="12">canonical path</text>
+      <text x="22" y="134" fill="#12130F" font-size="12">+ short hash</text>
+    </g>
+
+    <g transform="translate(676 150)">
+      <rect width="212" height="154" fill="#799BFF"/>
+      <text x="22" y="31" fill="#12130F" font-size="10" font-weight="700" letter-spacing="1.5">02 / PERSIST</text>
+      <text x="22" y="81" fill="#12130F" font-family="Georgia, 'Times New Roman', serif" font-size="35">tmux</text>
+      <text x="22" y="112" fill="#12130F" font-size="12">shell + children</text>
+      <text x="22" y="134" fill="#12130F" font-size="12">stay attached</text>
+    </g>
+
+    <g transform="translate(1006 150)">
+      <rect width="152" height="154" fill="#B9C8AD"/>
+      <text x="18" y="31" fill="#12130F" font-size="10" font-weight="700" letter-spacing="1.3">03 / PROTECT</text>
+      <path d="M55 54h42v32H55zM47 90h58l-7 10H54z" fill="none" stroke="#12130F" stroke-width="3"/>
+      <text x="18" y="126" fill="#12130F" font-size="12">Amphetamine</text>
+      <text x="18" y="146" fill="#12130F" font-size="12">keeps macOS awake</text>
+    </g>
+
+    <g transform="translate(676 350)">
+      <rect width="212" height="72" fill="#171813" stroke="#799BFF" stroke-width="2"/>
+      <circle cx="24" cy="24" r="6" fill="#799BFF"/>
+      <text x="42" y="28" fill="#799BFF" font-size="10" font-weight="700" letter-spacing="1.5">RETURN LOOP</text>
+      <text x="22" y="55" fill="#E9E6DC" font-size="13">same shell · same PID</text>
+    </g>
+
+    <text x="36" y="468" fill="#88877F" font-size="11" letter-spacing="1.2">DETACH THE TERMINAL. THE RELAY HOLDS. RUN AGENT AGAIN TO REJOIN.</text>
+  </g>
+</svg>

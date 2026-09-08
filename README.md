@@ -4,18 +4,12 @@
   <img alt="Agent Helper — Close the lid. Keep the thought. A local bridge from folder to tmux to Amphetamine." src="assets/hero-light.svg">
 </picture>
 
-<p align="center">
-  <img alt="macOS" src="https://img.shields.io/badge/macOS-Apple%20silicon%20tested-171713?style=flat-square">
-  <img alt="POSIX shell" src="https://img.shields.io/badge/POSIX-shell-1646D8?style=flat-square">
-  <img alt="Local only" src="https://img.shields.io/badge/runtime-local%20only-FF5A36?style=flat-square">
-</p>
-
 Agent Helper gives every project folder one persistent shell. Run `agent`, start Claude or Codex normally, detach or close your terminal, and return to the same process later. tmux preserves the shell; Amphetamine keeps macOS awake when the lid is closed.
 
 No custom dashboard. No agent orchestration. No cloud service. No direct power-management hacks.
 
 <picture>
-  <img alt="Terminal walkthrough showing agent, codex, detach, and agent reattachment" src="assets/terminal-demo.svg">
+  <img alt="Terminal walkthrough showing agent, Codex or Claude Code, detach, and agent reattachment" src="assets/terminal-demo.svg">
 </picture>
 
 ## Install
@@ -69,15 +63,11 @@ Running `agent` never launches Claude, Codex, or another tool for you. It hands 
 
 ## How it works
 
-```text
-project folder
-      │ canonical path
-      ▼
-deterministic tmux session ─── preserves shell and child processes
-      │ managed-session metadata
-      ▼
-Amphetamine session ────────── keeps macOS awake while work remains
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/how-it-works-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/how-it-works-light.svg">
+  <img alt="Project folder flows through Agent Helper into a persistent tmux shell and shared Amphetamine wake protection, with a return loop to the same shell and process." src="assets/how-it-works-light.svg">
+</picture>
 
 - The canonical folder path maps to a readable tmux name plus a short hash.
 - The canonical path is stored in tmux metadata, so names are never reverse-guessed.

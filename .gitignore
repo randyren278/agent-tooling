@@ -1,2 +1,3 @@
 .checkpoints/
 .verification/runtime/
+.verification/closed-lid-verified

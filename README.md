@@ -1,7 +1,7 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="assets/hero-light.svg">
-  <img alt="Agent Helper — Close the lid. Keep the thought. A local bridge from folder to tmux to Amphetamine." src="assets/hero-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark-v2.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/hero-light-v2.svg">
+  <img alt="Agent Helper — Close the lid. Keep the thought. A local bridge from folder to tmux to Amphetamine." src="assets/hero-light-v2.svg">
 </picture>
 
 Agent Helper gives every project folder one persistent shell. Run `agent`, start Claude or Codex normally, detach or close your terminal, and return to the same process later. tmux preserves the shell; Amphetamine keeps macOS awake when the lid is closed.
@@ -9,7 +9,7 @@ Agent Helper gives every project folder one persistent shell. Run `agent`, start
 No custom dashboard. No agent orchestration. No cloud service. No direct power-management hacks.
 
 <picture>
-  <img alt="Terminal walkthrough showing agent, Codex or Claude Code, detach, and agent reattachment" src="assets/terminal-demo.svg">
+  <img alt="Terminal walkthrough showing agent, Codex or Claude Code, detach, and agent reattachment" src="assets/terminal-demo-v2.svg">
 </picture>
 
 ## Install

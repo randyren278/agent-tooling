@@ -3,8 +3,14 @@ set -eu
 
 case "$(basename "$0")" in
     pmset)
-        printf "%s\n" "Now drawing from 'Battery Power'"
-        printf '%s\n' ' -InternalBattery-0 (id=1)  20%; discharging; present: true'
+        if [ "${2:-}" = batt ]; then
+            printf "%s\n" "Now drawing from 'Battery Power'"
+            printf '%s\n' ' -InternalBattery-0 (id=1)  20%; discharging; present: true'
+        else
+            active=false
+            [ ! -f "${AGENT_TEST_AMPHETAMINE_STATE:-}" ] || active=$(cat "$AGENT_TEST_AMPHETAMINE_STATE")
+            [ "$active" = true ] && printf '%s\n' ' SleepDisabled 1' || printf '%s\n' ' SleepDisabled 0'
+        fi
         ;;
     uname) printf '%s\n' arm64 ;;
     sw_vers)

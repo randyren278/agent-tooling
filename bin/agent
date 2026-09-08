@@ -59,6 +59,33 @@ warn_if_on_battery() {
         printf '%s\n' 'Warning: running on battery; Amphetamine is configured to end at 30%.' >&2
 }
 
+wait_for_protection_state() {
+    expected=$1
+    attempts=0
+    while [ "$attempts" -lt 8 ]; do
+        [ "$(doctor_sleep_disabled)" = "$expected" ] && return 0
+        attempts=$((attempts + 1))
+        /bin/sleep 1
+    done
+    printf 'agent: closed-display protection did not reach SleepDisabled=%s\n' "$expected" >&2
+    return 1
+}
+
+enable_wake_protection() {
+    active_before=$(amphetamine_get_active) || return 1
+    amphetamine_start || return 1
+    if ! wait_for_protection_state 1; then
+        [ "$active_before" = true ] || amphetamine_end >/dev/null 2>&1 || true
+        return 1
+    fi
+    warn_if_on_battery
+}
+
+disable_wake_protection() {
+    amphetamine_end || return 1
+    wait_for_protection_state 0
+}
+
 command_status() {
     root=$(canonical_root .) || return 1
     name=$(session_name_for_root "$root") || return 1
@@ -68,9 +95,17 @@ command_status() {
         session_state=stopped
     fi
     wake_state=$(amphetamine_state) || return 1
+    sleep_disabled=$(doctor_sleep_disabled)
+    if [ "$wake_state" = active ] && [ "$sleep_disabled" = 1 ]; then
+        readiness=ready
+    elif [ "$wake_state" = inactive ] && [ "$sleep_disabled" = 0 ]; then
+        readiness=inactive
+    else
+        readiness="not-ready (SleepDisabled=${sleep_disabled:-unknown})"
+    fi
     source=$(power_source)
-    printf 'Project: %s\nSession: %s (%s)\nAmphetamine: %s\nPower: %s\n' \
-        "$root" "$name" "$session_state" "$wake_state" "${source:-unknown}"
+    printf 'Project: %s\nSession: %s (%s)\nAmphetamine: %s\nClosed-display protection: %s\nPower: %s\n' \
+        "$root" "$name" "$session_state" "$wake_state" "$readiness" "${source:-unknown}"
 }
 
 command_list() {
@@ -85,8 +120,7 @@ command_enter() {
     sessions_require_tmux || return 1
     lock_acquire || return 1
     active_before=$(amphetamine_get_active) || return 1
-    amphetamine_start || return 1
-    warn_if_on_battery
+    enable_wake_protection || return 1
     root=$(canonical_root .) || return 1
     if ! name=$(sessions_create "$root"); then
         if [ "$active_before" = false ] && [ "$(sessions_count_managed)" -eq 0 ]; then
@@ -97,13 +131,13 @@ command_enter() {
     printf 'Agent Helper: %s\n' "$root"
     printf 'Persistent shell: %s · detach with Ctrl-B, then D\n' "$name"
     lock_release
+    [ "${AGENT_NONINTERACTIVE:-0}" != 1 ] || return 0
     sessions_attach "$name"
 }
 
 command_wake() {
     lock_acquire || return 1
-    amphetamine_start || return 1
-    warn_if_on_battery
+    enable_wake_protection
 }
 
 command_sleep() {
@@ -118,7 +152,7 @@ command_sleep() {
     if [ "$count" -gt 0 ]; then
         printf 'WARNING: ending Amphetamine while %s managed session(s) remain; tmux sessions will keep running only while macOS stays awake.\n' "$count" >&2
     fi
-    amphetamine_end
+    disable_wake_protection
 }
 
 command_stop() {
@@ -144,7 +178,7 @@ command_stop() {
     fi
     remaining=$(sessions_count_managed) || return 1
     if [ "$remaining" -eq 0 ]; then
-        amphetamine_end
+        disable_wake_protection
     else
         printf 'Amphetamine remains active for %s managed session(s).\n' "$remaining"
     fi

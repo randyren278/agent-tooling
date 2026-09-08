@@ -38,12 +38,22 @@ session_exists() {
     "$AGENT_TMUX" has-session -t "$1" 2>/dev/null
 }
 
+session_environment() {
+    name=$1
+    key=$2
+    line=$("$AGENT_TMUX" show-environment -t "$name" "$key" 2>/dev/null) || return 1
+    case "$line" in
+        "$key="*) printf '%s\n' "${line#*=}" ;;
+        *) return 1 ;;
+    esac
+}
+
 session_is_managed() {
-    [ "$("$AGENT_TMUX" show-environment -t "$1" -v AGENT_HELPER_MANAGED 2>/dev/null || true)" = "1" ]
+    [ "$(session_environment "$1" AGENT_HELPER_MANAGED 2>/dev/null || true)" = "1" ]
 }
 
 session_root() {
-    "$AGENT_TMUX" show-environment -t "$1" -v AGENT_HELPER_ROOT 2>/dev/null
+    session_environment "$1" AGENT_HELPER_ROOT
 }
 
 session_for_root() {

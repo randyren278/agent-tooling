@@ -8,14 +8,15 @@ trap 'rm -rf "$TEST_ROOT"' EXIT HUP INT TERM
 /bin/mkdir -p "$TEST_ROOT/bin" "$TEST_ROOT/tmux" "$TEST_ROOT/Amphetamine.app" "$TEST_ROOT/project"
 /bin/cp "$PROJECT_ROOT/tests/fixtures/fake-tmux" "$TEST_ROOT/bin/tmux"
 /bin/cp "$PROJECT_ROOT/tests/fixtures/fake-osascript" "$TEST_ROOT/bin/osascript"
-/bin/chmod +x "$TEST_ROOT/bin/tmux" "$TEST_ROOT/bin/osascript"
+/bin/cp "$PROJECT_ROOT/tests/fixtures/fake-platform" "$TEST_ROOT/bin/pmset"
+/bin/chmod +x "$TEST_ROOT/bin/tmux" "$TEST_ROOT/bin/osascript" "$TEST_ROOT/bin/pmset"
 
 export AGENT_TMUX="$TEST_ROOT/bin/tmux"
 export AGENT_OSASCRIPT="$TEST_ROOT/bin/osascript"
 export AGENT_AMPHETAMINE_APP="$TEST_ROOT/Amphetamine.app"
 export AGENT_TEST_TMUX_STATE="$TEST_ROOT/tmux"
 export AGENT_TEST_AMPHETAMINE_STATE="$TEST_ROOT/amphetamine-state"
-export AGENT_PMSET="$TEST_ROOT/bin/missing-pmset"
+export AGENT_PMSET="$TEST_ROOT/bin/pmset"
 export AGENT_LOCK_DIR="$TEST_ROOT/lock"
 AGENT="$PROJECT_ROOT/bin/agent"
 

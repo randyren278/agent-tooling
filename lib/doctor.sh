@@ -17,6 +17,10 @@ doctor_battery_percent() {
         /usr/bin/sed -n 's/.*[[:space:]]\([0-9][0-9]*\)%;.*/\1/p' | /usr/bin/head -n 1
 }
 
+doctor_sleep_disabled() {
+    "$AGENT_PMSET" -g 2>/dev/null | /usr/bin/awk '/SleepDisabled/ {print $2; exit}'
+}
+
 doctor_model() {
     "$AGENT_SYSTEM_PROFILER" SPHardwareDataType 2>/dev/null | \
         /usr/bin/awk -F ': ' '/Model Identifier/ {print $2; exit}'

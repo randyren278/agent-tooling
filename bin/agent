@@ -25,6 +25,15 @@ PROJECT_ROOT=$(CDPATH= cd -- "$(dirname -- "$SCRIPT_PATH")/.." && pwd -P)
 . "$PROJECT_ROOT/lib/amphetamine.sh"
 # shellcheck source=../lib/sessions.sh
 . "$PROJECT_ROOT/lib/sessions.sh"
+# shellcheck source=../lib/lock.sh
+. "$PROJECT_ROOT/lib/lock.sh"
+# shellcheck source=../lib/doctor.sh
+. "$PROJECT_ROOT/lib/doctor.sh"
+
+trap 'lock_release' EXIT
+trap 'lock_release; exit 129' HUP
+trap 'lock_release; exit 130' INT
+trap 'lock_release; exit 143' TERM
 
 usage() {
     cat <<'EOF'
@@ -42,8 +51,12 @@ EOF
 }
 
 power_source() {
-    ${AGENT_PMSET:-/usr/bin/pmset} -g batt 2>/dev/null | \
-        /usr/bin/sed -n "1s/.*'\([^']*\)'.*/\1/p"
+    doctor_power_source
+}
+
+warn_if_on_battery() {
+    [ "$(power_source)" != 'Battery Power' ] || \
+        printf '%s\n' 'Warning: running on battery; Amphetamine is configured to end at 30%.' >&2
 }
 
 command_status() {
@@ -61,36 +74,103 @@ command_status() {
 }
 
 command_list() {
-    found=0
-    sessions_list_managed | while IFS="$(printf '\t')" read -r name root; do
-        found=1
+    listing=$(sessions_list_managed) || return 1
+    printf '%s\n' "$listing" | while IFS="$(printf '\t')" read -r name root; do
+        [ -n "$name" ] || continue
         printf '%s  %s\n' "$name" "$root"
     done
-    # An empty list is normal; the pipeline subshell cannot expose found portably.
-    : "$found"
 }
 
 command_enter() {
     sessions_require_tmux || return 1
+    lock_acquire || return 1
+    active_before=$(amphetamine_get_active) || return 1
     amphetamine_start || return 1
+    warn_if_on_battery
     root=$(canonical_root .) || return 1
-    name=$(sessions_create "$root") || return 1
+    if ! name=$(sessions_create "$root"); then
+        if [ "$active_before" = false ] && [ "$(sessions_count_managed)" -eq 0 ]; then
+            amphetamine_end >/dev/null 2>&1 || true
+        fi
+        return 1
+    fi
     printf 'Agent Helper: %s\n' "$root"
     printf 'Persistent shell: %s · detach with Ctrl-B, then D\n' "$name"
+    lock_release
     sessions_attach "$name"
+}
+
+command_wake() {
+    lock_acquire || return 1
+    amphetamine_start || return 1
+    warn_if_on_battery
+}
+
+command_sleep() {
+    force=${1:-false}
+    lock_acquire || return 1
+    count=$(sessions_count_managed) || return 1
+    if [ "$count" -gt 0 ] && [ "$force" != true ]; then
+        printf 'agent: refusing to end Amphetamine while %s managed session(s) remain\n' "$count" >&2
+        printf '%s\n' 'Use agent sleep --force to override without stopping tmux.' >&2
+        return 1
+    fi
+    if [ "$count" -gt 0 ]; then
+        printf 'WARNING: ending Amphetamine while %s managed session(s) remain; tmux sessions will keep running only while macOS stays awake.\n' "$count" >&2
+    fi
+    amphetamine_end
+}
+
+command_stop() {
+    mode=${1:-current}
+    lock_acquire || return 1
+    if [ "$mode" = all ]; then
+        names=$(sessions_managed_names) || return 1
+        for name in $names; do
+            session_stop "$name" || return 1
+        done
+    else
+        root=$(canonical_root .) || return 1
+        name=$(session_name_for_root "$root") || return 1
+        if ! session_exists "$name"; then
+            printf '%s\n' 'No managed session exists for this folder.'
+        else
+            session_is_managed "$name" && [ "$(session_root "$name")" = "$root" ] || {
+                printf 'agent: refusing to stop colliding or unmanaged session %s\n' "$name" >&2
+                return 1
+            }
+            session_stop "$name" || return 1
+        fi
+    fi
+    remaining=$(sessions_count_managed) || return 1
+    if [ "$remaining" -eq 0 ]; then
+        amphetamine_end
+    else
+        printf 'Amphetamine remains active for %s managed session(s).\n' "$remaining"
+    fi
 }
 
 case "${1:-}" in
     '') command_enter ;;
-    wake) [ "$#" -eq 1 ] || { usage >&2; exit 2; }; amphetamine_start ;;
-    sleep) [ "$#" -eq 1 ] || { usage >&2; exit 2; }; amphetamine_end ;;
+    wake) [ "$#" -eq 1 ] || { usage >&2; exit 2; }; command_wake ;;
+    sleep)
+        case "${2:-}" in
+            '') [ "$#" -eq 1 ] || { usage >&2; exit 2; }; command_sleep false ;;
+            --force) [ "$#" -eq 2 ] || { usage >&2; exit 2; }; command_sleep true ;;
+            *) usage >&2; exit 2 ;;
+        esac
+        ;;
     status) [ "$#" -eq 1 ] || { usage >&2; exit 2; }; command_status ;;
     list) [ "$#" -eq 1 ] || { usage >&2; exit 2; }; command_list ;;
     help|-h|--help) usage ;;
-    stop|doctor)
-        printf 'agent: %s is not available until the safety phase is complete\n' "$1" >&2
-        exit 2
+    stop)
+        case "${2:-}" in
+            '') [ "$#" -eq 1 ] || { usage >&2; exit 2; }; command_stop current ;;
+            --all) [ "$#" -eq 2 ] || { usage >&2; exit 2; }; command_stop all ;;
+            *) usage >&2; exit 2 ;;
+        esac
         ;;
+    doctor) [ "$#" -eq 1 ] || { usage >&2; exit 2; }; doctor_run ;;
     *)
         printf 'agent: unknown command: %s\n' "$1" >&2
         usage >&2

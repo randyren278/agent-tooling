@@ -71,8 +71,12 @@ sessions_create() {
 
     "$AGENT_TMUX" new-session -d -s "$name" -c "$root" "exec $AGENT_LOGIN_SHELL -l" || \
         sessions_error "could not create tmux session $name"
-    "$AGENT_TMUX" set-environment -t "$name" AGENT_HELPER_MANAGED 1 || return 1
-    "$AGENT_TMUX" set-environment -t "$name" AGENT_HELPER_ROOT "$root" || return 1
+    if ! "$AGENT_TMUX" set-environment -t "$name" AGENT_HELPER_MANAGED 1 || \
+        ! "$AGENT_TMUX" set-environment -t "$name" AGENT_HELPER_ROOT "$root"; then
+        "$AGENT_TMUX" kill-session -t "$name" >/dev/null 2>&1 || true
+        sessions_error "could not record metadata for tmux session $name"
+        return 1
+    fi
     printf '%s\n' "$name"
 }
 
@@ -82,10 +86,50 @@ sessions_attach() {
 
 sessions_list_managed() {
     sessions_require_tmux || return 1
-    "$AGENT_TMUX" list-sessions -F '#{session_name}' 2>/dev/null | while IFS= read -r name; do
+    if output=$("$AGENT_TMUX" list-sessions -F '#{session_name}' 2>/dev/null); then
+        :
+    else
+        status=$?
+        [ "$status" -eq 1 ] && return 0
+        sessions_error "could not list tmux sessions"
+        return 1
+    fi
+    printf '%s\n' "$output" | while IFS= read -r name; do
         [ -n "$name" ] || continue
         session_is_managed "$name" || continue
         root=$(session_root "$name") || continue
         printf '%s\t%s\n' "$name" "$root"
     done
+}
+
+sessions_managed_names() {
+    sessions_require_tmux || return 1
+    if output=$("$AGENT_TMUX" list-sessions -F '#{session_name}' 2>/dev/null); then
+        :
+    else
+        status=$?
+        [ "$status" -eq 1 ] && return 0
+        sessions_error "could not list tmux sessions"
+        return 1
+    fi
+    printf '%s\n' "$output" | while IFS= read -r name; do
+        [ -n "$name" ] && session_is_managed "$name" && printf '%s\n' "$name"
+    done
+}
+
+sessions_count_managed() {
+    names=$(sessions_managed_names) || return 1
+    count=$(printf '%s\n' "$names" | /usr/bin/awk 'NF {count++} END {print count+0}')
+    printf '%s\n' "$count"
+}
+
+session_stop() {
+    name=$1
+    session_exists "$name" || return 0
+    session_is_managed "$name" || {
+        sessions_error "refusing to stop unmanaged tmux session $name"
+        return 1
+    }
+    "$AGENT_TMUX" kill-session -t "$name" || \
+        sessions_error "could not stop tmux session $name"
 }

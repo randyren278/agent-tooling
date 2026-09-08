@@ -51,11 +51,13 @@ assert_contains "$status" 'Amphetamine: active'
 listed=$("$AGENT" list)
 assert_contains "$listed" "$TEST_ROOT/work/project with spaces!"
 
-"$AGENT" sleep
-[ "$(cat "$AGENT_TEST_AMPHETAMINE_STATE")" = false ] || fail 'sleep did not end Amphetamine'
+if "$AGENT" sleep >/dev/null 2>&1; then fail 'sleep succeeded while a managed session remained'; fi
+"$AGENT" stop >/dev/null
+[ "$(cat "$AGENT_TEST_AMPHETAMINE_STATE")" = false ] || fail 'stopping the last session did not end Amphetamine'
 "$AGENT" sleep | grep -Fq 'already inactive' || fail 'repeated sleep was not idempotent'
 
-printf '%s\n' '/different/root' >"$AGENT_TEST_TMUX_STATE/sessions/$session/env-AGENT_HELPER_ROOT"
+/bin/mkdir "$AGENT_TEST_TMUX_STATE/sessions/$session"
+printf '%s\n' '0' >"$AGENT_TEST_TMUX_STATE/sessions/$session/env-AGENT_HELPER_MANAGED"
 if "$AGENT" >/dev/null 2>&1; then fail 'session-name collision succeeded'; fi
 
 if "$AGENT" nonsense >/dev/null 2>&1; then fail 'unknown command succeeded'; fi

@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+
+case "$(basename "$0")" in
+    pmset)
+        printf "%s\n" "Now drawing from 'Battery Power'"
+        printf '%s\n' ' -InternalBattery-0 (id=1)  20%; discharging; present: true'
+        ;;
+    uname) printf '%s\n' arm64 ;;
+    sw_vers)
+        [ "${1:-}" = -productVersion ] && printf '%s\n' 99.1 || printf '%s\n' 99A1
+        ;;
+    system_profiler) printf '%s\n' '      Model Identifier: TestMac1,1' ;;
+    mdls) printf '%s\n' 5.3.2 ;;
+    *) exit 2 ;;
+esac

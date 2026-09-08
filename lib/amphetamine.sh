@@ -9,10 +9,14 @@ amphetamine_error() {
 }
 
 amphetamine_require() {
-    [ -d "$AGENT_AMPHETAMINE_APP" ] || \
+    if [ ! -d "$AGENT_AMPHETAMINE_APP" ]; then
         amphetamine_error "Amphetamine is not installed at $AGENT_AMPHETAMINE_APP"
-    [ -x "$AGENT_OSASCRIPT" ] || \
+        return 1
+    fi
+    if [ ! -x "$AGENT_OSASCRIPT" ]; then
         amphetamine_error "osascript is unavailable at $AGENT_OSASCRIPT"
+        return 1
+    fi
 }
 
 amphetamine_tell() {

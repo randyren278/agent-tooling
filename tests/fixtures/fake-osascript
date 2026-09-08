@@ -3,6 +3,13 @@ set -eu
 
 state=${AGENT_TEST_AMPHETAMINE_STATE:?}
 script=${2:-}
+[ "${AGENT_TEST_OSASCRIPT_FAILURE:-}" != all ] || exit 13
+[ "${AGENT_TEST_OSASCRIPT_FAILURE:-}" != query ] || case "$script" in
+    *'session is active'*) exit 13 ;;
+esac
+[ "${AGENT_TEST_OSASCRIPT_FAILURE:-}" != end ] || case "$script" in
+    *'end session'*) exit 13 ;;
+esac
 active=false
 [ ! -f "$state" ] || active=$(cat "$state")
 case "$script" in

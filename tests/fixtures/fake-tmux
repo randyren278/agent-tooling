@@ -7,6 +7,7 @@ log=$state/log
 printf '%s\n' "$*" >>"$log"
 command=$1
 shift
+[ "${AGENT_TEST_TMUX_FAILURE:-}" != "$command" ] || exit 2
 
 value_after() {
     wanted=$1
@@ -59,5 +60,9 @@ case "$command" in
         done
         ;;
     attach-session) : ;;
+    kill-session)
+        name=$(value_after -t "$@")
+        /bin/rm -rf "$state/sessions/$name"
+        ;;
     *) printf 'fake-tmux: unsupported command: %s\n' "$command" >&2; exit 2 ;;
 esac

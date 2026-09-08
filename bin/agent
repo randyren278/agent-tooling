@@ -1,0 +1,99 @@
+#!/bin/sh
+set -u
+
+resolve_script() {
+    target=$1
+    while [ -L "$target" ]; do
+        directory=$(CDPATH= cd -- "$(dirname -- "$target")" && pwd -P) || return 1
+        link=$(readlink "$target") || return 1
+        case "$link" in
+            /*) target=$link ;;
+            *) target=$directory/$link ;;
+        esac
+    done
+    directory=$(CDPATH= cd -- "$(dirname -- "$target")" && pwd -P) || return 1
+    printf '%s/%s\n' "$directory" "$(basename -- "$target")"
+}
+
+SCRIPT_PATH=$(resolve_script "$0") || {
+    printf '%s\n' 'agent: could not resolve installation path' >&2
+    exit 1
+}
+PROJECT_ROOT=$(CDPATH= cd -- "$(dirname -- "$SCRIPT_PATH")/.." && pwd -P)
+
+# shellcheck source=../lib/amphetamine.sh
+. "$PROJECT_ROOT/lib/amphetamine.sh"
+# shellcheck source=../lib/sessions.sh
+. "$PROJECT_ROOT/lib/sessions.sh"
+
+usage() {
+    cat <<'EOF'
+Usage: agent [command]
+
+  agent                Enter this folder's persistent shell
+  agent wake           Start Amphetamine
+  agent sleep          End Amphetamine
+  agent status         Show this folder's session and wake state
+  agent list           List managed sessions
+  agent stop [--all]   Stop managed session(s)
+  agent doctor         Check readiness
+  agent help           Show this help
+EOF
+}
+
+power_source() {
+    ${AGENT_PMSET:-/usr/bin/pmset} -g batt 2>/dev/null | \
+        /usr/bin/sed -n "1s/.*'\([^']*\)'.*/\1/p"
+}
+
+command_status() {
+    root=$(canonical_root .) || return 1
+    name=$(session_name_for_root "$root") || return 1
+    if session_for_root "$root" >/dev/null 2>&1; then
+        session_state=running
+    else
+        session_state=stopped
+    fi
+    wake_state=$(amphetamine_state) || return 1
+    source=$(power_source)
+    printf 'Project: %s\nSession: %s (%s)\nAmphetamine: %s\nPower: %s\n' \
+        "$root" "$name" "$session_state" "$wake_state" "${source:-unknown}"
+}
+
+command_list() {
+    found=0
+    sessions_list_managed | while IFS="$(printf '\t')" read -r name root; do
+        found=1
+        printf '%s  %s\n' "$name" "$root"
+    done
+    # An empty list is normal; the pipeline subshell cannot expose found portably.
+    : "$found"
+}
+
+command_enter() {
+    sessions_require_tmux || return 1
+    amphetamine_start || return 1
+    root=$(canonical_root .) || return 1
+    name=$(sessions_create "$root") || return 1
+    printf 'Agent Helper: %s\n' "$root"
+    printf 'Persistent shell: %s · detach with Ctrl-B, then D\n' "$name"
+    sessions_attach "$name"
+}
+
+case "${1:-}" in
+    '') command_enter ;;
+    wake) [ "$#" -eq 1 ] || { usage >&2; exit 2; }; amphetamine_start ;;
+    sleep) [ "$#" -eq 1 ] || { usage >&2; exit 2; }; amphetamine_end ;;
+    status) [ "$#" -eq 1 ] || { usage >&2; exit 2; }; command_status ;;
+    list) [ "$#" -eq 1 ] || { usage >&2; exit 2; }; command_list ;;
+    help|-h|--help) usage ;;
+    stop|doctor)
+        printf 'agent: %s is not available until the safety phase is complete\n' "$1" >&2
+        exit 2
+        ;;
+    *)
+        printf 'agent: unknown command: %s\n' "$1" >&2
+        usage >&2
+        exit 2
+        ;;
+esac

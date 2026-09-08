@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+state=${AGENT_TEST_AMPHETAMINE_STATE:?}
+script=${2:-}
+active=false
+[ ! -f "$state" ] || active=$(cat "$state")
+case "$script" in
+    *'session is active'*) printf '%s\n' "$active" ;;
+    *'start new session'*) printf '%s\n' true >"$state" ;;
+    *'end session'*) printf '%s\n' false >"$state" ;;
+    *) printf 'fake-osascript: unsupported script: %s\n' "$script" >&2; exit 2 ;;
+esac

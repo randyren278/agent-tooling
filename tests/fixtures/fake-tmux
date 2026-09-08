@@ -1,0 +1,63 @@
+#!/bin/sh
+set -eu
+
+state=${AGENT_TEST_TMUX_STATE:?}
+log=$state/log
+/bin/mkdir -p "$state/sessions"
+printf '%s\n' "$*" >>"$log"
+command=$1
+shift
+
+value_after() {
+    wanted=$1
+    shift
+    while [ "$#" -gt 0 ]; do
+        if [ "$1" = "$wanted" ]; then
+            printf '%s\n' "$2"
+            return
+        fi
+        shift
+    done
+    exit 1
+}
+
+last_argument() {
+    last=
+    for argument in "$@"; do
+        last=$argument
+    done
+    printf '%s\n' "$last"
+}
+
+case "$command" in
+    has-session)
+        name=$(value_after -t "$@")
+        [ -d "$state/sessions/$name" ]
+        ;;
+    new-session)
+        name=$(value_after -s "$@")
+        root=$(value_after -c "$@")
+        /bin/mkdir "$state/sessions/$name"
+        printf '%s\n' "$root" >"$state/sessions/$name/created-root"
+        last_argument "$@" >"$state/sessions/$name/command"
+        ;;
+    set-environment)
+        name=$(value_after -t "$@")
+        shift 2
+        key=$1
+        value=$2
+        printf '%s\n' "$value" >"$state/sessions/$name/env-$key"
+        ;;
+    show-environment)
+        name=$(value_after -t "$@")
+        key=$(last_argument "$@")
+        cat "$state/sessions/$name/env-$key"
+        ;;
+    list-sessions)
+        for directory in "$state"/sessions/*; do
+            [ -d "$directory" ] && basename "$directory"
+        done
+        ;;
+    attach-session) : ;;
+    *) printf 'fake-tmux: unsupported command: %s\n' "$command" >&2; exit 2 ;;
+esac
